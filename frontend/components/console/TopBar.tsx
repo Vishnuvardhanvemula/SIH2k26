@@ -1,43 +1,50 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, RefreshCw, Waves } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Search, RefreshCw, Waves, MapPin } from 'lucide-react';
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import { LiveReadout } from './LiveReadout';
 
-const DEMO_LOCATIONS = [
-  { label: 'Bay of Bengal', lat: 14, lon: 85 },
-  { label: 'Arabian Sea', lat: 15, lon: 65 },
-  { label: 'Equatorial Indian Ocean', lat: 0, lon: 75 },
-  { label: 'Andaman Sea', lat: 10, lon: 96 },
-  { label: 'Lakshadweep Sea', lat: 12, lon: 72 },
-];
-
 interface TopBarProps {
-  onSearchLocation?: (lat: number, lon: number) => void;
+  onSearchLocation?: (lat: number, lon: number, altitudeM?: number) => void;
   onReset?: () => void;
 }
 
+// ── Indian ocean/sea region pins ──────────────────────────────────────────────
+const QUICK_PINS = [
+  { label: 'Bay of Bengal',          lat: 14,  lon: 85,  alt: 2_500_000 },
+  { label: 'Arabian Sea',            lat: 15,  lon: 65,  alt: 2_500_000 },
+  { label: 'Andaman Sea',            lat: 10,  lon: 96,  alt: 1_500_000 },
+  { label: 'Lakshadweep Sea',        lat: 12,  lon: 72,  alt: 1_200_000 },
+  { label: 'Gulf of Mannar',         lat: 9,   lon: 79,  alt:   900_000 },
+  { label: 'Palk Strait',            lat: 9.5, lon: 79.5,alt:   500_000 },
+  { label: 'Gulf of Khambhat',       lat: 21,  lon: 72,  alt:   700_000 },
+  { label: 'Gulf of Kutch',          lat: 22.5,lon: 69.5,alt:   600_000 },
+];
+
 export function TopBar({ onSearchLocation, onReset }: TopBarProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
   const resetView = useConsoleStore((s) => s.resetView);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const filteredLocations = DEMO_LOCATIONS.filter((l) =>
-    l.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = query.trim()
+    ? QUICK_PINS.filter((p) => p.label.toLowerCase().includes(query.toLowerCase()))
+    : QUICK_PINS;
 
-  const handleSelect = (lat: number, lon: number, label: string) => {
-    setSearchQuery(label);
-    setShowSuggestions(false);
-    onSearchLocation?.(lat, lon);
+  const selectPin = (lat: number, lon: number, label: string, alt: number) => {
+    setQuery(label);
+    setOpen(false);
+    onSearchLocation?.(lat, lon, alt);
   };
 
   const handleReset = () => {
     resetView();
     onReset?.();
-    setSearchQuery('');
+    setQuery('');
   };
+
+  const showDropdown = open && filtered.length > 0;
 
   return (
     <header
@@ -63,25 +70,22 @@ export function TopBar({ onSearchLocation, onReset }: TopBarProps) {
 
       {/* Region search */}
       <div className="relative shrink-0" role="search">
-        <label htmlFor="region-search" className="sr-only">
-          Search ocean region
-        </label>
+        <label htmlFor="region-search" className="sr-only">Search ocean region or location</label>
+
         <div className="relative flex items-center">
-          <Search
-            size={13}
-            className="absolute left-2.5 text-foam-dim pointer-events-none"
-            aria-hidden="true"
-          />
+          <Search size={13} className="absolute left-2.5 text-foam-dim pointer-events-none" aria-hidden="true" />
           <input
+            ref={inputRef}
             id="region-search"
             type="search"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setShowSuggestions(true);
+            autoComplete="off"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 180)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setOpen(false); inputRef.current?.blur(); }
             }}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="Search region…"
             className="
               w-44 h-7 pl-7 pr-2 rounded text-xs font-mono
@@ -93,35 +97,44 @@ export function TopBar({ onSearchLocation, onReset }: TopBarProps) {
             aria-label="Search ocean region"
             role="combobox"
             aria-autocomplete="list"
-            aria-expanded={showSuggestions && filteredLocations.length > 0}
+            aria-expanded={showDropdown}
             aria-controls="search-suggestions"
           />
         </div>
 
-        {/* Suggestions dropdown */}
-        {showSuggestions && filteredLocations.length > 0 && (
+        {/* Dropdown */}
+        {showDropdown && (
           <ul
+            id="search-suggestions"
             className="
-              absolute top-full right-0 mt-1 w-52
-              bg-deep-panel/95 backdrop-blur-xl
-              border border-thermocline/35 rounded-md
-              overflow-hidden z-50 shadow-xl
+              absolute top-full right-0 mt-1 w-56
+              bg-[#07111f] border border-[#1a3050]
+              rounded-lg overflow-y-auto z-50
+              shadow-[0_8px_32px_rgba(0,0,0,0.7)]
+              max-h-64
             "
             role="listbox"
-            aria-label="Region suggestions"
+            aria-label="Ocean region suggestions"
           >
-            {filteredLocations.map((loc) => (
-              <li key={loc.label} role="option" aria-selected={false}>
+            <li className="px-3 py-2 text-[10px] font-mono tracking-widest uppercase text-[#4a7090] border-b border-[#1a3050] select-none">
+              Ocean Regions
+            </li>
+            {filtered.map((pin) => (
+              <li key={pin.label} role="option" aria-selected={false}>
                 <button
                   className="
-                    w-full text-left px-3 py-2 text-xs font-ui text-foam-dim
-                    hover:bg-thermocline/20 hover:text-foam
-                    focus:outline-none focus:bg-thermocline/20 focus:text-foam
-                    transition-colors border-b border-thermocline/20 last:border-0
+                    w-full text-left px-3 py-2.5 text-xs font-ui
+                    text-[#8ab4cc] hover:text-white hover:bg-[#0f2035]
+                    focus:outline-none focus:bg-[#0f2035] focus:text-white
+                    transition-colors duration-100
+                    border-b border-[#0e1e30] last:border-0
+                    flex items-center gap-2.5
                   "
-                  onClick={() => handleSelect(loc.lat, loc.lon, loc.label)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectPin(pin.lat, pin.lon, pin.label, pin.alt)}
                 >
-                  {loc.label}
+                  <MapPin size={10} className="text-[#2a8fa8] shrink-0" />
+                  {pin.label}
                 </button>
               </li>
             ))}

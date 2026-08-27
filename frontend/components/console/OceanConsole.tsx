@@ -8,14 +8,16 @@ import { CameraChoreographer } from '@/components/globe/CameraChoreographer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Globe and layers — client-only, dynamic imports
-const CesiumStage = dynamic(() => import('@/components/globe/CesiumStage'), { ssr: false }) as ComponentType<{ onViewerReady?: (v: unknown) => void }>;
+const CesiumStage = dynamic(() => import('@/components/globe/CesiumStage'), { ssr: false }) as ComponentType<{ onViewerReady?: (v: unknown) => void; onGlobeClick?: (lat: number, lon: number) => void }>;
 const ModelFieldLayer = dynamic(() => import('@/components/globe/ModelFieldLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
 const ArgoMarkerLayer = dynamic(() => import('@/components/globe/ArgoMarkerLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
 const DepthSliceShader = dynamic(() => import('@/components/globe/DepthSliceShader'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
+const ThreeDVolumeLayer = dynamic(() => import('@/components/globe/ThreeDVolumeLayer').then(m => m.ThreeDVolumeLayer), { ssr: false }) as ComponentType<{ viewer: unknown | null }>;
 
 // Panel components
 const LayersPanel = dynamic(() => import('@/components/layers-panel/LayersPanel').then(m => ({ default: m.LayersPanel })), { ssr: false });
-const DepthRail = dynamic(() => import('@/components/depth-rail/DepthRail').then(m => ({ default: m.DepthRail })), { ssr: false });
+// ViewModeToggle is currently hidden; keep import commented until re-enabled
+// const ViewModeToggle = dynamic(() => import('@/components/console/ViewModeToggle').then(m => ({ default: m.ViewModeToggle })), { ssr: false });
 const InspectorDrawer = dynamic(() => import('@/components/inspector/InspectorDrawer').then(m => ({ default: m.InspectorDrawer })), { ssr: false });
 const TimelineScrubber = dynamic(() => import('@/components/timeline/TimelineScrubber').then(m => ({ default: m.TimelineScrubber })), { ssr: false });
 
@@ -43,23 +45,24 @@ export default function OceanConsole() {
     choreographerRef.current = new CameraChoreographer(v);
   }, []);
 
-  const handleModeChange = useCallback(
-    (newMode: 'surface' | 'cutaway' | 'dive') => {
-      choreographerRef.current?.transitionTo(newMode, { lon: 80, lat: 10 });
-    },
-    []
-  );
+  // handleModeChange — wired to ViewModeToggle, re-enable when the panel is shown
+  // const handleModeChange = useCallback(
+  //   (newMode: 'surface' | 'cutaway' | 'dive') => {
+  //     choreographerRef.current?.transitionTo(newMode, { lon: 80, lat: 10 });
+  //   },
+  //   []
+  // );
 
-  const handleSearchLocation = useCallback((lat: number, lon: number) => {
-    choreographerRef.current?.flyToFloat(lat, lon);
+  const handleSearchLocation = useCallback((lat: number, lon: number, altitudeM?: number) => {
+    choreographerRef.current?.flyToFloat(lat, lon, altitudeM);
   }, []);
 
   const handleReset = useCallback(() => {
     choreographerRef.current?.resetToIndianOcean();
   }, []);
 
-  const handleDiveReplay = useCallback(() => {
-    choreographerRef.current?.transitionTo('dive', { lon: 78.3, lat: 12.4 });
+  const handleDiveReplay = useCallback((lat: number, lon: number) => {
+    choreographerRef.current?.transitionTo('dive', { lon, lat });
   }, []);
 
   return (
@@ -71,7 +74,10 @@ export default function OceanConsole() {
         aria-label="INCOIS Ocean Digital Twin Console"
       >
         {/* ── Globe Stage — z-index base, fills entire viewport ──────────── */}
-        <CesiumStage onViewerReady={handleViewerReady} />
+        <CesiumStage 
+          onViewerReady={handleViewerReady} 
+          onGlobeClick={handleSearchLocation}
+        />
 
         {/* Globe rendering layers (render into Cesium scene) */}
         {!!viewer && (
@@ -79,6 +85,7 @@ export default function OceanConsole() {
             <ModelFieldLayer viewer={viewer} />
             <ArgoMarkerLayer viewer={viewer} />
             <DepthSliceShader viewer={viewer} />
+            <ThreeDVolumeLayer viewer={viewer} />
           </>
         )}
 
@@ -96,12 +103,13 @@ export default function OceanConsole() {
           <LayersPanel />
         </aside>
 
-        {/* ── Depth Rail — right, persistent ───────────────────────────────── */}
+        {/* ── View Mode Toggle — right, floating ─────────────────────────────── */}
         <aside
-          className="absolute right-3 top-16 bottom-20 z-40 flex flex-col"
-          aria-label="Depth navigation rail"
+          className="absolute right-3 top-16 z-40 flex flex-col pointer-events-none hidden"
+          aria-label="View mode toggle"
         >
-          <DepthRail onModeChange={handleModeChange} />
+          {/* Hidden for now per user request */}
+          {/* <ViewModeToggle onModeChange={handleModeChange} /> */}
         </aside>
 
         {/* ── Inspector Drawer — right, slides in on float selection ────────── */}

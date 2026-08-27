@@ -5,17 +5,19 @@ import { useConsoleStore } from '@/lib/store/useConsoleStore';
 
 interface CesiumStageProps {
   onViewerReady?: (viewer: unknown) => void;
+  onGlobeClick?: (lat: number, lon: number) => void;
 }
 
 /**
  * CesiumStage — the full-bleed 3D ocean globe.
  * Initializes Cesium client-only, frames the Indian Ocean.
  */
-export default function CesiumStage({ onViewerReady }: CesiumStageProps): JSX.Element {
+export default function CesiumStage({ onViewerReady, onGlobeClick }: CesiumStageProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<unknown>(null);
   const setCursor = useConsoleStore((s) => s.setCursor);
   const handlerRef = useRef<unknown>(null);
+  const onGlobeClickRef = useRef(onGlobeClick);
 
   const initCesium = useCallback(async () => {
     if (!containerRef.current || viewerRef.current) return;
@@ -125,13 +127,40 @@ export default function CesiumStage({ onViewerReady }: CesiumStageProps): JSX.El
         }
       }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
+      handler.setInputAction((movement: { position: { x: number; y: number } }) => {
+        try {
+          // Check if user clicked on a Cesium entity (marker) — let ArgoMarkerLayer handle those
+          const pickedObject = scene.pick(movement.position as unknown as import('cesium').Cartesian2);
+          const isEntity = Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id);
+          if (isEntity) return; // entity click handled elsewhere
+
+          const cartesian = viewer.camera.pickEllipsoid(
+            movement.position as unknown as import('cesium').Cartesian2,
+            scene.globe.ellipsoid
+          );
+          if (cartesian) {
+            const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            const lat = Cesium.Math.toDegrees(cartographic.latitude);
+            const lon = Cesium.Math.toDegrees(cartographic.longitude);
+            onGlobeClickRef.current?.(lat, lon);
+          }
+        } catch (e) {
+          console.error('[CesiumStage] Click handler error:', e);
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
       onViewerReady?.(viewer);
       console.log('[CesiumStage] Initialized successfully');
 
     } catch (err) {
       console.error('[CesiumStage] Failed to initialize Cesium:', err);
     }
-  }, [setCursor, onViewerReady]);
+  }, [setCursor, onViewerReady]); // Notice we don't need onGlobeClick here because it uses the ref
+
+  useEffect(() => {
+    // Keep the ref updated with the latest prop
+    onGlobeClickRef.current = onGlobeClick;
+  }, [onGlobeClick]);
 
   useEffect(() => {
     // Small delay to ensure DOM is fully mounted

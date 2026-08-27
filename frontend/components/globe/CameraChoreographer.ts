@@ -120,18 +120,19 @@ export class CameraChoreographer {
     });
   }
 
-  flyToFloat(lat: number, lon: number): void {
+  flyToFloat(lat: number, lon: number, altitudeM?: number): void {
     const duration = this.reducedMotion ? 0 : 1.5;
+    const altitude = altitudeM ?? 1_200_000;
 
     import('cesium').then((Cesium) => {
       const viewer = this.viewer as {
         camera: { flyTo: (opts: unknown) => void };
       };
       viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(lon, lat, 1200000),
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
         orientation: {
           heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-45),
+          pitch: Cesium.Math.toRadians(-90),
           roll: 0,
         },
         duration,

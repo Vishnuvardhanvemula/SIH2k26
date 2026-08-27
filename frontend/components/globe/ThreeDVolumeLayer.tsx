@@ -16,7 +16,7 @@ interface CesiumViewerLike {
 }
 
 interface ThreeDVolumeLayerProps {
-  viewer: CesiumViewerLike | null;
+  viewer: unknown | null;
 }
 
 export function ThreeDVolumeLayer({ viewer }: ThreeDVolumeLayerProps) {
@@ -36,8 +36,9 @@ export function ThreeDVolumeLayer({ viewer }: ThreeDVolumeLayerProps) {
     
     // Match the Cesium canvas size
     const resize = () => {
-      const width = viewer.canvas.clientWidth;
-      const height = viewer.canvas.clientHeight;
+      const v = viewer as CesiumViewerLike;
+      const width = v.canvas.clientWidth;
+      const height = v.canvas.clientHeight;
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(window.devicePixelRatio);
     };
@@ -48,52 +49,100 @@ export function ThreeDVolumeLayer({ viewer }: ThreeDVolumeLayerProps) {
     const scene = new THREE.Scene();
 
     // 3. Setup Three.js Camera (matrix controlled by Cesium)
+    const v = viewer as CesiumViewerLike;
     const camera = new THREE.PerspectiveCamera(
-      viewer.camera.frustum.fov * (180 / Math.PI), 
-      viewer.canvas.clientWidth / viewer.canvas.clientHeight, 
+      v.camera.frustum.fov * (180 / Math.PI), 
+      v.canvas.clientWidth / v.canvas.clientHeight, 
       0.1, 
       100000000
     );
     camera.matrixAutoUpdate = false; // We will manually feed it Cesium's view matrix
 
-    // 4. Create the "Glowing Box" Spike Test Object
-    // We will place it roughly over the Indian Ocean
-    const geometry = new THREE.BoxGeometry(500000, 500000, 500000); 
-    const material = new THREE.MeshBasicMaterial({ 
-      color: 0x4ce0d2, // biolume
-      wireframe: true,
+    // 4. Create the Cutaway Volumetric Plane
+    // The cutaway plane spans East-West along 10N.
+    const width = 8000000; // 8000 km wide
+    const depth = 2000000; // 2000 km deep (exaggerated for visual impact)
+    const geometry = new THREE.PlaneGeometry(width, depth, 64, 16); 
+    
+    // Custom Shader for the "volumetric depth slice"
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uColorTop: { value: new THREE.Color(0x4ce0d2) }, // biolume
+        uColorBottom: { value: new THREE.Color(0x0a1a2f) }, // deep ocean blue
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColorTop;
+        uniform vec3 uColorBottom;
+        varying vec2 vUv;
+        
+        void main() {
+          // Heatmap gradient from top (1.0) to bottom (0.0)
+          vec3 baseColor = mix(uColorBottom, uColorTop, vUv.y);
+          
+          // Grid lines
+          float gridX = abs(fract(vUv.x * 40.0 - uTime * 0.1) - 0.5) * 2.0;
+          float gridY = abs(fract(vUv.y * 10.0 - uTime * 0.05) - 0.5) * 2.0;
+          float lineX = smoothstep(0.95, 1.0, gridX);
+          float lineY = smoothstep(0.9, 1.0, gridY);
+          
+          // Scanning beam effect
+          float scan = sin(vUv.y * 20.0 - uTime * 2.0) * 0.5 + 0.5;
+          scan = smoothstep(0.98, 1.0, scan) * 0.5;
+          
+          float alpha = 0.6 * vUv.y + lineX * 0.3 + lineY * 0.3 + scan;
+          
+          gl_FragColor = vec4(baseColor + (lineX+lineY)*0.5 + scan, alpha);
+        }
+      `,
       transparent: true,
-      opacity: 0.8
+      side: THREE.DoubleSide,
+      depthWrite: false,
     });
-    const cube = new THREE.Mesh(geometry, material);
+    
+    const slicePlane = new THREE.Mesh(geometry, material);
+    scene.add(slicePlane);
     
     // Convert Lat/Lon to Cartesian for Three.js
-    // Let's import Cesium dynamically or assume it's available globally/from the viewer
-    const Cesium = (window as Window & { Cesium?: { Cartesian3: { fromDegrees: (lon: number, lat: number, alt: number) => { x: number; y: number; z: number } }; Transforms: { eastNorthUpToFixedFrame: (pos: unknown) => number[] } } }).Cesium;
-    if (Cesium) {
-      const position = Cesium.Cartesian3.fromDegrees(80.0, 10.0, 250000); // 10N, 80E, floating up
-      cube.position.set(position.x, position.y, position.z);
+    import('cesium').then((Cesium) => {
+      // Place the center of the plane at 10N, 80E, but halfway down the depth
+      const position = Cesium.Cartesian3.fromDegrees(80.0, 10.0, -depth / 2); 
+      slicePlane.position.set(position.x, position.y, position.z);
       
-      // Orient the box so it aligns with the local tangent plane of the Earth
+      // Orient the plane to match the local East-North-Up frame
       const transform = Cesium.Transforms.eastNorthUpToFixedFrame(position);
-      // transform is a Matrix4. We can apply it to the cube's quaternion
       const m = new THREE.Matrix4().fromArray(transform);
-      cube.quaternion.setFromRotationMatrix(m);
-    }
-    
-    scene.add(cube);
+      slicePlane.quaternion.setFromRotationMatrix(m);
+      
+      // In ENU, X is East, Y is North, Z is Up.
+      // A standard ThreeJS plane faces +Z. We want it to stand vertically, extending East-West (X) and Up-Down (Z).
+      // So we rotate it 90 degrees around the X axis so it faces North (+Y).
+      slicePlane.rotateX(Math.PI / 2);
+    });
 
     // 5. The Sync Loop
     const renderLoop = () => {
-      if (!viewer.scene || !viewer.camera) return;
+      const vSync = viewer as CesiumViewerLike;
+      if (!vSync.scene || !vSync.camera) return;
+
+      // Update shader time
+      material.uniforms.uTime.value += 0.016;
 
       // Copy Cesium's Camera View Matrix
-      const cvm = viewer.camera.viewMatrix;
+      const cvm = vSync.camera.viewMatrix;
       camera.matrixWorldInverse.fromArray(cvm);
       camera.matrixWorld.copy(camera.matrixWorldInverse).invert();
 
       // Copy Cesium's Camera Projection Matrix
-      const cpm = viewer.camera.frustum.projectionMatrix;
+      const cpm = vSync.camera.frustum.projectionMatrix;
       camera.projectionMatrix.fromArray(cpm);
 
       // Render
@@ -101,11 +150,12 @@ export function ThreeDVolumeLayer({ viewer }: ThreeDVolumeLayerProps) {
     };
 
     // Attach to Cesium's preRender hook
-    viewer.scene.preRender.addEventListener(renderLoop);
+    const vEvents = viewer as CesiumViewerLike;
+    vEvents.scene.preRender.addEventListener(renderLoop);
 
     return () => {
       window.removeEventListener('resize', resize);
-      viewer.scene.preRender.removeEventListener(renderLoop);
+      vEvents.scene.preRender.removeEventListener(renderLoop);
       renderer.dispose();
       geometry.dispose();
       material.dispose();

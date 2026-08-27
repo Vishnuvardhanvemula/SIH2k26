@@ -12,7 +12,7 @@ import { useProfile, useMatchup } from '@/lib/api/queries';
 import { useObservations } from '@/lib/api/queries';
 
 interface InspectorDrawerProps {
-  onDiveReplay: () => void;
+  onDiveReplay: (lat: number, lon: number) => void;
 }
 
 export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
@@ -40,74 +40,80 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
       aria-modal="false"
       aria-label={`Inspector for ${selectedId}`}
     >
-      <GlassPanel strong className="h-full flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-thermocline/25 shrink-0">
-          <div className="flex items-center gap-2">
-            <ChevronRight size={12} className="text-biolume" aria-hidden="true" />
-            <span className="font-display text-xs font-semibold text-foam tracking-wide">
-              INSPECTOR
-            </span>
+      <GlassPanel strong className="h-full">
+        <div className="flex flex-col h-full w-full overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-thermocline/25 shrink-0">
+            <div className="flex items-center gap-2">
+              <ChevronRight size={12} className="text-biolume" aria-hidden="true" />
+              <span className="font-display text-xs font-semibold text-foam tracking-wide">
+                INSPECTOR
+              </span>
+            </div>
+            <button
+              onClick={() => setInspectorOpen(false)}
+              className="
+                w-6 h-6 flex items-center justify-center rounded
+                text-foam-dim hover:text-foam hover:bg-thermocline/20
+                focus:outline-none focus:ring-2 focus:ring-biolume/40
+                transition-colors
+              "
+              aria-label="Close inspector"
+            >
+              <X size={13} aria-hidden="true" />
+            </button>
           </div>
-          <button
-            onClick={() => setInspectorOpen(false)}
-            className="
-              w-6 h-6 flex items-center justify-center rounded
-              text-foam-dim hover:text-foam hover:bg-thermocline/20
-              focus:outline-none focus:ring-2 focus:ring-biolume/40
-              transition-colors
-            "
-            aria-label="Close inspector"
-          >
-            <X size={13} aria-hidden="true" />
-          </button>
-        </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto console-scroll px-3 py-3 flex flex-col gap-5">
-          {/* Float summary */}
-          {selectedObservation ? (
-            <FloatSummaryCard observation={selectedObservation} />
-          ) : (
-            <div className="font-mono text-2xs text-foam-dim">
-              PROFILE STREAM READY
-            </div>
-          )}
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto console-scroll px-3 py-3 flex flex-col gap-5">
+            {/* Float summary */}
+            {selectedObservation ? (
+              <FloatSummaryCard observation={selectedObservation} />
+            ) : (
+              <div className="font-mono text-2xs text-foam-dim">
+                PROFILE STREAM READY
+              </div>
+            )}
 
-          <div className="w-full h-px bg-thermocline/20" role="separator" />
+            <div className="w-full h-px bg-thermocline/20 shrink-0" role="separator" />
 
-          {/* Depth profile chart */}
-          {profileLoading ? (
-            <LoadingScan label="Loading profile…" compact />
-          ) : profileError ? (
-            <div className="font-mono text-xs text-coral-delta/80">
-              PROFILE STREAM ERROR
-            </div>
-          ) : profile ? (
-            <DepthProfileChart profile={profile} />
-          ) : (
-            <div className="font-mono text-2xs text-foam-dim">
-              NO PROFILE DATA AT THIS DEPTH
-            </div>
-          )}
+            {/* Depth profile chart */}
+            {profileLoading ? (
+              <LoadingScan label="Loading profile…" compact />
+            ) : profileError ? (
+              <div className="font-mono text-xs text-coral-delta/80">
+                PROFILE STREAM ERROR
+              </div>
+            ) : profile ? (
+              <DepthProfileChart profile={profile} />
+            ) : (
+              <div className="font-mono text-2xs text-foam-dim">
+                NO PROFILE DATA AT THIS DEPTH
+              </div>
+            )}
 
-          <div className="w-full h-px bg-thermocline/20" role="separator" />
+            <div className="w-full h-px bg-thermocline/20 shrink-0" role="separator" />
 
-          {/* Model vs observation table */}
-          {matchupLoading ? (
-            <LoadingScan label="Loading matchup…" compact />
-          ) : matchup ? (
-            <ModelVsObservationTable matchup={matchup} />
-          ) : (
-            <div className="font-mono text-2xs text-foam-dim">
-              NO MODEL COVERAGE AT THIS DEPTH
-            </div>
-          )}
+            {/* Model vs observation table */}
+            {matchupLoading ? (
+              <LoadingScan label="Loading matchup…" compact />
+            ) : matchup ? (
+              <ModelVsObservationTable matchup={matchup} />
+            ) : (
+              <div className="font-mono text-2xs text-foam-dim">
+                NO MODEL COVERAGE AT THIS DEPTH
+              </div>
+            )}
 
-          <div className="w-full h-px bg-thermocline/20" role="separator" />
+            <div className="w-full h-px bg-thermocline/20 shrink-0" role="separator" />
 
-          {/* Dive replay action */}
-          <DiveReplayButton onReplay={onDiveReplay} />
+            {/* Dive replay action */}
+            <DiveReplayButton onReplay={() => {
+              if (selectedObservation) {
+                onDiveReplay(selectedObservation.lat, selectedObservation.lon);
+              }
+            }} />
+          </div>
         </div>
       </GlassPanel>
     </div>

@@ -50,6 +50,37 @@ body {
   width: 100%;
 }
 
+/* ─── Global Themed Scrollbar ────────────────────────────────────────────────── */
+/* Webkit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050B14; /* --abyss */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1C5C6B; /* --thermocline */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4CE0D2; /* --biolume */
+}
+
+::-webkit-scrollbar-corner {
+  background: #050B14;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1C5C6B #050B14;
+}
+
 /* ─── Cesium Overrides ───────────────────────────────────────────────────────── */
 .cesium-widget,
 .cesium-widget canvas {

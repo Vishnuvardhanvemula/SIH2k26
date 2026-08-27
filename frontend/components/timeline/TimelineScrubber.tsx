@@ -58,72 +58,72 @@ export function TimelineScrubber() {
     };
   }, [playback.isPlaying, tick]);
 
-  const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = parseFloat(e.target.value) / 1000;
-    const newTime = new Date(RANGE_START.getTime() + f * RANGE_MS);
-    setTime(newTime.toISOString());
-  };
-
   return (
-    <GlassPanel className="h-full flex items-center px-4 gap-4 rounded-none border-l-0 border-r-0 border-b-0">
-      {/* Date display */}
-      <div className="flex items-center gap-2 shrink-0">
-        <Calendar size={12} className="text-foam-dim" aria-hidden="true" />
-        <div className="flex flex-col leading-none">
-          <MonoValue value={displayDate} size="xs" color="foam" />
-          <MonoValue value={displayTime} unit="UTC" size="xs" color="dim" />
+    <GlassPanel className="h-full rounded-none border-l-0 border-r-0 border-b-0 bg-deep-panel/95 backdrop-blur-md">
+      <div className="flex h-full w-full items-center px-6 gap-4">
+        {/* Date display */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Calendar size={14} className="text-foam-dim" aria-hidden="true" />
+          <div className="flex flex-col leading-none gap-0.5">
+            <MonoValue value={displayDate} size="xs" color="foam" />
+            <MonoValue value={displayTime} unit="UTC" size="xs" color="dim" />
+          </div>
+        </div>
+
+        {/* Range labels */}
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <span className="font-mono text-[0.6rem] text-foam-dim/50 uppercase tracking-widest">
+            {RANGE_START.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' })}
+          </span>
+        </div>
+
+        {/* Scrubber */}
+        <div className="flex-1 relative h-full flex items-center group cursor-pointer" onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const f = (e.clientX - rect.left) / rect.width;
+            const newTime = new Date(RANGE_START.getTime() + f * RANGE_MS);
+            setTime(newTime.toISOString());
+        }}>
+          {/* Track background */}
+          <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 rounded bg-thermocline/20 pointer-events-none" />
+          
+          {/* Active window highlight */}
+          <div
+            className="absolute top-1/2 left-0 h-1 -translate-y-1/2 rounded bg-biolume shadow-[0_0_8px_rgba(76,224,210,0.4)] pointer-events-none transition-all duration-100 ease-linear"
+            style={{ width: `${fraction * 100}%` }}
+            aria-hidden="true"
+          />
+          
+          {/* Thumb */}
+          <div 
+            className="absolute top-1/2 w-3 h-3 -translate-y-1/2 -translate-x-1/2 bg-biolume rounded-full shadow-[0_0_10px_rgba(76,224,210,0.8)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{ left: `${fraction * 100}%` }}
+          />
+        </div>
+
+        {/* End date */}
+        <div className="flex items-center gap-1 shrink-0 mr-2">
+          <span className="font-mono text-[0.6rem] text-foam-dim/50 uppercase tracking-widest">
+            {RANGE_END.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' })}
+          </span>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-8 bg-thermocline/25 shrink-0 mx-2" />
+
+        {/* Playback controls */}
+        <PlaybackControls />
+
+        {/* Demo badge */}
+        <div className="shrink-0 hidden lg:flex flex-col items-end">
+          <span className="font-mono text-[0.55rem] text-foam-dim/40 tracking-[0.2em] uppercase">
+            SIMULATION
+          </span>
+          <span className="font-mono text-xs text-foam-dim/60 tracking-widest uppercase">
+            AUG 2026
+          </span>
         </div>
       </div>
-
-      {/* Range labels */}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="font-mono text-2xs text-foam-dim/50">
-          {RANGE_START.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' })}
-        </span>
-      </div>
-
-      {/* Scrubber */}
-      <div className="flex-1 relative h-full flex items-center">
-        {/* Active window highlight */}
-        <div
-          className="absolute top-1/2 left-0 h-1 -translate-y-1/2 rounded bg-biolume/20"
-          style={{ width: `${fraction * 100}%` }}
-          aria-hidden="true"
-        />
-        <input
-          type="range"
-          min={0}
-          max={1000}
-          step={1}
-          value={Math.round(fraction * 1000)}
-          onChange={handleScrub}
-          className="w-full h-1 rounded appearance-none cursor-pointer z-10 relative"
-          style={{ accentColor: '#4CE0D2', background: 'rgba(28,92,107,0.3)' }}
-          aria-label="Timeline position"
-          aria-valuemin={0}
-          aria-valuemax={1000}
-          aria-valuenow={Math.round(fraction * 1000)}
-          aria-valuetext={`${displayDate} ${displayTime} UTC`}
-        />
-      </div>
-
-      {/* End date */}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="font-mono text-2xs text-foam-dim/50">
-          {RANGE_END.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' })}
-        </span>
-      </div>
-
-      {/* Divider */}
-      <div className="w-px h-6 bg-thermocline/25 shrink-0" />
-
-      {/* Playback controls */}
-      <PlaybackControls />
-
-      {/* Demo badge */}
-      <span className="font-mono text-2xs text-foam-dim/40 shrink-0 tracking-widest hidden lg:block">
-        AUG 2026
-      </span>
     </GlassPanel>
   );
 }
