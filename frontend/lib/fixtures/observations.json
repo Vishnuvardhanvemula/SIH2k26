@@ -1,0 +1,102 @@
+[
+  {
+    "id": "WMO6902913",
+    "lat": 12.4,
+    "lon": 78.3,
+    "lastSurfaced": "2026-07-31T09:12:00Z",
+    "platform": "argo",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 1240
+  },
+  {
+    "id": "WMO6902847",
+    "lat": 8.7,
+    "lon": 82.1,
+    "lastSurfaced": "2026-07-30T14:45:00Z",
+    "platform": "argo",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": true,
+    "depth": 980
+  },
+  {
+    "id": "WMO6901234",
+    "lat": 15.2,
+    "lon": 68.5,
+    "lastSurfaced": "2026-07-29T22:10:00Z",
+    "platform": "argo",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 1500
+  },
+  {
+    "id": "GLIDER-AOB-04",
+    "lat": 6.3,
+    "lon": 79.8,
+    "lastSurfaced": "2026-07-31T11:30:00Z",
+    "platform": "glider",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 200
+  },
+  {
+    "id": "GLIDER-IND-07",
+    "lat": 18.9,
+    "lon": 72.4,
+    "lastSurfaced": "2026-07-31T08:00:00Z",
+    "platform": "glider",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 150
+  },
+  {
+    "id": "BUOY-MOB-12",
+    "lat": 0.5,
+    "lon": 80.2,
+    "lastSurfaced": "2026-07-31T12:00:00Z",
+    "platform": "buoy",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 0
+  },
+  {
+    "id": "BUOY-EIO-03",
+    "lat": -5.1,
+    "lon": 75.6,
+    "lastSurfaced": "2026-07-31T12:00:00Z",
+    "platform": "buoy",
+    "qcStatus": "PROVISIONAL",
+    "hasAnomaly": true,
+    "depth": 0
+  },
+  {
+    "id": "WMO6903001",
+    "lat": 10.1,
+    "lon": 90.3,
+    "lastSurfaced": "2026-07-30T06:30:00Z",
+    "platform": "argo",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 1100
+  },
+  {
+    "id": "WMO6902755",
+    "lat": 20.3,
+    "lon": 65.2,
+    "lastSurfaced": "2026-07-28T18:20:00Z",
+    "platform": "argo",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 1800
+  },
+  {
+    "id": "WMO6902500",
+    "lat": -3.4,
+    "lon": 68.9,
+    "lastSurfaced": "2026-07-29T03:45:00Z",
+    "platform": "argo",
+    "qcStatus": "ACCEPTED",
+    "hasAnomaly": false,
+    "depth": 1350
+  }
+]
