@@ -7,6 +7,7 @@ import type { Observation } from '@/lib/api/types';
 
 interface ArgoMarkerLayerProps {
   viewer: unknown | null;
+  onMarkerClick?: (id: string, lat: number, lon: number) => void;
 }
 
 const PLATFORM_COLOR = {
@@ -19,7 +20,7 @@ const PLATFORM_COLOR = {
  * ArgoMarkerLayer — renders Argo floats, gliders, and buoys
  * as Cesium point entities. Handles click → selectedFloatId.
  */
-export default function ArgoMarkerLayer({ viewer }: ArgoMarkerLayerProps) {
+export default function ArgoMarkerLayer({ viewer, onMarkerClick }: ArgoMarkerLayerProps) {
   const activeTypes = useConsoleStore((s) => s.activeObservationTypes);
   const time = useConsoleStore((s) => s.time);
   const selectedId = useConsoleStore((s) => s.selectedFloatId);
@@ -33,6 +34,14 @@ export default function ArgoMarkerLayer({ viewer }: ArgoMarkerLayerProps) {
   const entityMapRef = useRef<Map<string, unknown>>(new Map());
   const clickHandlerRef = useRef<unknown>(null);
   const cesiumRef = useRef<typeof import('cesium') | null>(null);
+
+  // Keep refs up-to-date so the click handler closure never goes stale
+  const observationsRef = useRef(observations);
+  const onMarkerClickRef = useRef(onMarkerClick);
+  const selectFloatRef = useRef(selectFloat);
+  useEffect(() => { observationsRef.current = observations; }, [observations]);
+  useEffect(() => { onMarkerClickRef.current = onMarkerClick; }, [onMarkerClick]);
+  useEffect(() => { selectFloatRef.current = selectFloat; }, [selectFloat]);
 
   // ── Initialize click handler once ──────────────────────────────────────────
   useEffect(() => {
@@ -59,15 +68,26 @@ export default function ArgoMarkerLayer({ viewer }: ArgoMarkerLayerProps) {
           }).scene.pick(click.position);
 
           if (picked) {
-            // Cesium entity click: entity is in picked.id
-            const entity = (picked as { id?: { id?: string } }).id;
-            if (entity?.id) {
-              selectFloat(entity.id);
+            // Cesium entity click — check it's a marker (has a point), not a grid tile
+            const entity = (picked as { id?: { id?: string; point?: unknown } }).id;
+            if (entity?.id && entity.point !== undefined) {
+              // Use refs so we always get fresh values regardless of closure age
+              const obs = observationsRef.current?.find((o: Observation) => o.id === entity.id!);
+              if (obs) {
+                const cb = onMarkerClickRef.current;
+                if (cb) {
+                  cb(entity.id!, obs.lat, obs.lon);
+                } else {
+                  selectFloatRef.current(entity.id!);
+                }
+              } else {
+                // Float ID found but no obs data yet — still select it
+                selectFloatRef.current(entity.id!);
+              }
               return;
             }
           }
-          // Click on empty globe — deselect
-          selectFloat(null);
+          // Non-marker clicks (empty globe / grid) are handled by CesiumStage's onGlobeClick
         } catch {
           // Swallow pick errors (e.g. during scene transitions)
         }

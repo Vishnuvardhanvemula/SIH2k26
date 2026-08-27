@@ -8,8 +8,8 @@ import { FloatSummaryCard } from './FloatSummaryCard';
 import { DepthProfileChart } from './DepthProfileChart';
 import { ModelVsObservationTable } from './ModelVsObservationTable';
 import { DiveReplayButton } from './DiveReplayButton';
-import { useProfile, useMatchup } from '@/lib/api/queries';
-import { useObservations } from '@/lib/api/queries';
+import { useProfile, useMatchup, useObservations } from '@/lib/api/queries';
+import type { Observation } from '@/lib/api/types';
 
 interface InspectorDrawerProps {
   onDiveReplay: (lat: number, lon: number) => void;
@@ -19,26 +19,53 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
   const selectedId = useConsoleStore((s) => s.selectedFloatId);
   const open = useConsoleStore((s) => s.inspectorOpen);
   const setInspectorOpen = useConsoleStore((s) => s.setInspectorOpen);
+  const clearFocusPoint = useConsoleStore((s) => s.clearFocusPoint);
+  const focusLat = useConsoleStore((s) => s.focusLat);
+  const focusLon = useConsoleStore((s) => s.focusLon);
   const time = useConsoleStore((s) => s.time);
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useProfile(selectedId);
-  const { data: matchup, isLoading: matchupLoading } = useMatchup(selectedId);
+  const isOceanPoint = !selectedId && focusLat !== null && focusLon !== null;
+  // For ocean points: show as long as focusLat/lon is set (no need for inspectorOpen flag)
+  // For float markers: show only when inspectorOpen is explicitly true
+  const shouldShow = isOceanPoint || (open && !!selectedId);
 
-  // Get observation metadata for the selected float
+  const effectiveId = selectedId || (isOceanPoint ? `GEO_${focusLat!.toFixed(2)}_${focusLon!.toFixed(2)}` : null);
+
+  const { data: profile, isLoading: profileLoading, error: profileError } = useProfile(effectiveId);
+  const { data: matchup, isLoading: matchupLoading } = useMatchup(effectiveId);
+
+  // Get observation metadata for the selected float or construct synthetic ocean point observation
   const { data: observations } = useObservations({
     types: ['argo', 'glider', 'buoy'],
     time,
   });
-  const selectedObservation = observations?.find((o) => o.id === selectedId);
 
-  if (!open || !selectedId) return null;
+  const selectedObservation: Observation | undefined = selectedId
+    ? observations?.find((o) => o.id === selectedId)
+    : (isOceanPoint ? {
+        id: `INCOIS-STATION-${Math.abs(focusLat!).toFixed(2)}${focusLat! >= 0 ? 'N' : 'S'}-${Math.abs(focusLon!).toFixed(2)}${focusLon! >= 0 ? 'E' : 'W'}`,
+        lat: focusLat!,
+        lon: focusLon!,
+        platform: 'argo' as const,
+        lastSurfaced: time || '2026-08-01T00:00:00Z',
+        qcStatus: 'ACCEPTED' as const,
+        hasAnomaly: false,
+        depth: 0,
+      } : undefined);
+
+  if (!shouldShow) return null;
+
+  const handleClose = () => {
+    setInspectorOpen(false);
+    if (isOceanPoint) clearFocusPoint();
+  };
 
   return (
     <div
-      className="absolute right-20 top-16 bottom-20 z-50 w-72 animate-slide-in-right"
+      className="absolute right-3 top-16 bottom-20 z-50 w-72 animate-slide-in-right"
       role="dialog"
       aria-modal="false"
-      aria-label={`Inspector for ${selectedId}`}
+      aria-label={selectedObservation ? `Inspector for ${selectedObservation.id}` : 'Ocean inspector'}
     >
       <GlassPanel strong className="h-full">
         <div className="flex flex-col h-full w-full overflow-hidden">
@@ -51,7 +78,7 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
               </span>
             </div>
             <button
-              onClick={() => setInspectorOpen(false)}
+              onClick={handleClose}
               className="
                 w-6 h-6 flex items-center justify-center rounded
                 text-foam-dim hover:text-foam hover:bg-thermocline/20
@@ -66,7 +93,7 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto console-scroll px-3 py-3 flex flex-col gap-5">
-            {/* Float summary */}
+            {/* Float / Station summary */}
             {selectedObservation ? (
               <FloatSummaryCard observation={selectedObservation} />
             ) : (
@@ -107,7 +134,7 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
 
             <div className="w-full h-px bg-thermocline/20 shrink-0" role="separator" />
 
-            {/* Dive replay action */}
+            {/* Dive / Depth View replay action */}
             <DiveReplayButton onReplay={() => {
               if (selectedObservation) {
                 onDiveReplay(selectedObservation.lat, selectedObservation.lon);

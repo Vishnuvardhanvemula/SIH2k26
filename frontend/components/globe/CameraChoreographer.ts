@@ -90,30 +90,37 @@ export class CameraChoreographer {
           viewer.scene.fog.density = 0.0003;
           break;
 
-        case 'dive':
+        case 'dive': {
+          const altitude = 700_000;
+          const pitchRad = Cesium.Math.toRadians(-50);
+          const groundDist = altitude / Math.tan(Math.abs(pitchRad));
+          const latOffset = groundDist / 111320;
+          const cameraLat = lat - latOffset;
+
           if (this.reducedMotion) {
             viewer.camera.setView({
-              destination: Cesium.Cartesian3.fromDegrees(lon, lat - 3, 1000000), 
+              destination: Cesium.Cartesian3.fromDegrees(lon, cameraLat, altitude), 
               orientation: {
                 heading: Cesium.Math.toRadians(0),
-                pitch: Cesium.Math.toRadians(-60), // Cinematic angle looking down at the 3D block
+                pitch: pitchRad,
                 roll: 0,
               },
             });
           } else {
             viewer.camera.flyTo({
-              destination: Cesium.Cartesian3.fromDegrees(lon, lat - 3, 1000000),
+              destination: Cesium.Cartesian3.fromDegrees(lon, cameraLat, altitude),
               orientation: {
                 heading: Cesium.Math.toRadians(0),
-                pitch: Cesium.Math.toRadians(-60),
+                pitch: pitchRad,
                 roll: 0,
               },
               duration,
               easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
             });
           }
-          viewer.scene.fog.density = 0.001; // Thicker atmospheric fog for Dive mode
+          viewer.scene.fog.density = 0.0002;
           break;
+        }
       }
 
       viewer.scene.requestRender?.();
@@ -125,14 +132,20 @@ export class CameraChoreographer {
     const altitude = altitudeM ?? 1_200_000;
 
     import('cesium').then((Cesium) => {
+      // Calculate how far South to place the camera so it looks exactly at (lat, lon)
+      // With a -45 degree pitch, the ground distance to the focal point equals the altitude.
+      // 1 degree of latitude is roughly 111,320 meters.
+      const latOffset = altitude / 111320;
+      const cameraLat = lat - latOffset;
+
       const viewer = this.viewer as {
         camera: { flyTo: (opts: unknown) => void };
       };
       viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
+        destination: Cesium.Cartesian3.fromDegrees(lon, cameraLat, altitude),
         orientation: {
           heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-90),
+          pitch: Cesium.Math.toRadians(-45),
           roll: 0,
         },
         duration,

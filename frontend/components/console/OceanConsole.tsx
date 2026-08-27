@@ -4,20 +4,19 @@ import React, { ComponentType, useCallback, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import { TopBar } from './TopBar';
+import { DepthColumnHUD } from './DepthColumnHUD';
 import { CameraChoreographer } from '@/components/globe/CameraChoreographer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Globe and layers — client-only, dynamic imports
 const CesiumStage = dynamic(() => import('@/components/globe/CesiumStage'), { ssr: false }) as ComponentType<{ onViewerReady?: (v: unknown) => void; onGlobeClick?: (lat: number, lon: number) => void }>;
 const ModelFieldLayer = dynamic(() => import('@/components/globe/ModelFieldLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
-const ArgoMarkerLayer = dynamic(() => import('@/components/globe/ArgoMarkerLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
+const ArgoMarkerLayer = dynamic(() => import('@/components/globe/ArgoMarkerLayer'), { ssr: false }) as ComponentType<{ viewer: unknown; onMarkerClick?: (id: string, lat: number, lon: number) => void }>;
 const DepthSliceShader = dynamic(() => import('@/components/globe/DepthSliceShader'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
 const ThreeDVolumeLayer = dynamic(() => import('@/components/globe/ThreeDVolumeLayer').then(m => m.ThreeDVolumeLayer), { ssr: false }) as ComponentType<{ viewer: unknown | null }>;
 
 // Panel components
 const LayersPanel = dynamic(() => import('@/components/layers-panel/LayersPanel').then(m => ({ default: m.LayersPanel })), { ssr: false });
-// ViewModeToggle is currently hidden; keep import commented until re-enabled
-// const ViewModeToggle = dynamic(() => import('@/components/console/ViewModeToggle').then(m => ({ default: m.ViewModeToggle })), { ssr: false });
 const InspectorDrawer = dynamic(() => import('@/components/inspector/InspectorDrawer').then(m => ({ default: m.InspectorDrawer })), { ssr: false });
 const TimelineScrubber = dynamic(() => import('@/components/timeline/TimelineScrubber').then(m => ({ default: m.TimelineScrubber })), { ssr: false });
 
@@ -33,26 +32,26 @@ const queryClient = new QueryClient({
 /**
  * OceanConsole — the root shell of the entire console.
  * Orchestrates all panels floating over the full-bleed Cesium globe.
- * Globe is always visible; panels are positioned absolutely over it.
  */
 export default function OceanConsole() {
   const [viewer, setViewer] = useState<unknown>(null);
   const choreographerRef = useRef<CameraChoreographer | null>(null);
   const mode = useConsoleStore((s) => s.mode);
+  const setFocusPoint = useConsoleStore((s) => s.setFocusPoint);
+  const selectFloat = useConsoleStore((s) => s.selectFloat);
 
   const handleViewerReady = useCallback((v: unknown) => {
     setViewer(v);
     choreographerRef.current = new CameraChoreographer(v);
   }, []);
 
-  // handleModeChange — wired to ViewModeToggle, re-enable when the panel is shown
-  // const handleModeChange = useCallback(
-  //   (newMode: 'surface' | 'cutaway' | 'dive') => {
-  //     choreographerRef.current?.transitionTo(newMode, { lon: 80, lat: 10 });
-  //   },
-  //   []
-  // );
+  /** Globe bare-ocean click: fly there AND open the depth column */
+  const handleGlobeClick = useCallback((lat: number, lon: number) => {
+    setFocusPoint(lat, lon);
+    choreographerRef.current?.flyToFloat(lat, lon, 800_000); // zoom to 800 km
+  }, [setFocusPoint]);
 
+  /** TopBar region search: fly only, no column */
   const handleSearchLocation = useCallback((lat: number, lon: number, altitudeM?: number) => {
     choreographerRef.current?.flyToFloat(lat, lon, altitudeM);
   }, []);
@@ -61,9 +60,23 @@ export default function OceanConsole() {
     choreographerRef.current?.resetToIndianOcean();
   }, []);
 
+  /** Globe marker click: zoom to marker and open inspector */
+  const handleMarkerClick = useCallback((id: string, lat: number, lon: number) => {
+    choreographerRef.current?.flyToFloat(lat, lon, 800_000);
+    selectFloat(id);
+  }, [selectFloat]);
+
+  const setMode = useConsoleStore((s) => s.setMode);
+
   const handleDiveReplay = useCallback((lat: number, lon: number) => {
+    // Set 3D focus point for the borehole column
+    setFocusPoint(lat, lon);
+    setMode('dive');
+    // Close inspector drawer to reveal the 3D column and DepthColumnHUD
+    useConsoleStore.getState().setInspectorOpen(false);
+    // Trigger the cinematic dive animation
     choreographerRef.current?.transitionTo('dive', { lon, lat });
-  }, []);
+  }, [setFocusPoint, setMode]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -74,16 +87,16 @@ export default function OceanConsole() {
         aria-label="INCOIS Ocean Digital Twin Console"
       >
         {/* ── Globe Stage — z-index base, fills entire viewport ──────────── */}
-        <CesiumStage 
-          onViewerReady={handleViewerReady} 
-          onGlobeClick={handleSearchLocation}
+        <CesiumStage
+          onViewerReady={handleViewerReady}
+          onGlobeClick={handleGlobeClick}
         />
 
         {/* Globe rendering layers (render into Cesium scene) */}
         {!!viewer && (
           <>
             <ModelFieldLayer viewer={viewer} />
-            <ArgoMarkerLayer viewer={viewer} />
+            <ArgoMarkerLayer viewer={viewer} onMarkerClick={handleMarkerClick} />
             <DepthSliceShader viewer={viewer} />
             <ThreeDVolumeLayer viewer={viewer} />
           </>
@@ -103,13 +116,12 @@ export default function OceanConsole() {
           <LayersPanel />
         </aside>
 
-        {/* ── View Mode Toggle — right, floating ─────────────────────────────── */}
+        {/* ── Depth Column HUD — right, appears when a point is focused ─────── */}
         <aside
-          className="absolute right-3 top-16 z-40 flex flex-col pointer-events-none hidden"
-          aria-label="View mode toggle"
+          className="absolute right-3 top-16 z-50 flex flex-col pointer-events-none"
+          aria-label="Depth column HUD"
         >
-          {/* Hidden for now per user request */}
-          {/* <ViewModeToggle onModeChange={handleModeChange} /> */}
+          <DepthColumnHUD />
         </aside>
 
         {/* ── Inspector Drawer — right, slides in on float selection ────────── */}

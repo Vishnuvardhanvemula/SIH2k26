@@ -129,10 +129,13 @@ export default function CesiumStage({ onViewerReady, onGlobeClick }: CesiumStage
 
       handler.setInputAction((movement: { position: { x: number; y: number } }) => {
         try {
-          // Check if user clicked on a Cesium entity (marker) — let ArgoMarkerLayer handle those
+          // Check if user clicked on an Argo marker (which has a point geometry).
+          // Background grid tiles are rectangles, and raw globe clicks have no .id.
           const pickedObject = scene.pick(movement.position as unknown as import('cesium').Cartesian2);
-          const isEntity = Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id);
-          if (isEntity) return; // entity click handled elsewhere
+          const isMarker = Cesium.defined(pickedObject) && 
+                           Cesium.defined(pickedObject.id) && 
+                           Cesium.defined(pickedObject.id.point);
+          if (isMarker) return; // marker click handled elsewhere
 
           const cartesian = viewer.camera.pickEllipsoid(
             movement.position as unknown as import('cesium').Cartesian2,

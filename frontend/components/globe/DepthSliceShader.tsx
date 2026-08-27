@@ -55,9 +55,9 @@ export default function DepthSliceShader({ viewer }: DepthSliceShaderProps) {
         planesRef.current = clippingPlanes;
       }
 
-      // Enable the cutaway slice only in cutaway or dive modes
+      // Enable the cutaway slice only in cutaway mode
       if (planesRef.current) {
-        planesRef.current.enabled = mode === 'cutaway' || mode === 'dive';
+        planesRef.current.enabled = mode === 'cutaway';
         v.scene.requestRender();
       }
     });

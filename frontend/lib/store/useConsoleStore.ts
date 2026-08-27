@@ -24,6 +24,10 @@ export interface ConsoleState {
   cursorLat: number | null;
   cursorLon: number | null;
 
+  // Focus point — clicked globe coordinate for depth column
+  focusLat: number | null;
+  focusLon: number | null;
+
   // Inspector open state
   inspectorOpen: boolean;
   
@@ -41,6 +45,8 @@ export interface ConsoleState {
   setColormap: (c: Partial<ColormapConfig>) => void;
   setPlayback: (p: Partial<PlaybackConfig>) => void;
   setCursor: (lat: number | null, lon: number | null) => void;
+  setFocusPoint: (lat: number, lon: number) => void;
+  clearFocusPoint: () => void;
   setInspectorOpen: (open: boolean) => void;
   toggleModelFieldVisibility: () => void;
   toggleCurrents: () => void;
@@ -68,6 +74,8 @@ const DEFAULT_STATE = {
   },
   cursorLat: null,
   cursorLon: null,
+  focusLat: null,
+  focusLon: null,
   inspectorOpen: false,
   isModelFieldVisible: true,
   showCurrents: false,
@@ -110,6 +118,8 @@ export const useConsoleStore = create<ConsoleState>()((set) => ({
     set({
       selectedFloatId: id,
       inspectorOpen: id !== null,
+      focusLat: null, // mutually exclusive with depth column HUD
+      focusLon: null,
     }),
 
   setColormap: (partial) =>
@@ -123,6 +133,15 @@ export const useConsoleStore = create<ConsoleState>()((set) => ({
     })),
 
   setCursor: (lat, lon) => set({ cursorLat: lat, cursorLon: lon }),
+
+  setFocusPoint: (lat, lon) => set({ 
+    focusLat: lat, 
+    focusLon: lon,
+    selectedFloatId: null, // mutually exclusive with float inspector
+    inspectorOpen: true,   // open inspector for ocean-point data too
+  }),
+
+  clearFocusPoint: () => set({ focusLat: null, focusLon: null }),
 
   setInspectorOpen: (open) =>
     set((state) => ({
@@ -144,5 +163,7 @@ export const useConsoleStore = create<ConsoleState>()((set) => ({
       inspectorOpen: false,
       cursorLat: null,
       cursorLon: null,
+      focusLat: null,
+      focusLon: null,
     }),
 }));

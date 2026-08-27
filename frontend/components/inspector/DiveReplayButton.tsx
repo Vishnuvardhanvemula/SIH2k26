@@ -30,7 +30,7 @@ export function DiveReplayButton({ onReplay }: DiveReplayButtonProps) {
       aria-busy={isDiving}
     >
       <Anchor size={13} aria-hidden="true" />
-      <span>{isDiving ? 'DIVE REPLAY ACTIVE' : 'REPLAY DIVE'}</span>
+      <span>{isDiving ? 'DEPTH VIEW ACTIVE' : 'DEPTH VIEW'}</span>
     </button>
   );
 }

@@ -13,6 +13,8 @@ const PLATFORM_LABELS: Record<string, string> = {
   argo: 'ARGO FLOAT',
   glider: 'GLIDER',
   buoy: 'SURFACE BUOY',
+  synthetic: 'VIRTUAL WATER COLUMN',
+  virtual: 'VIRTUAL WATER COLUMN',
 };
 
 export function FloatSummaryCard({ observation }: FloatSummaryCardProps) {
