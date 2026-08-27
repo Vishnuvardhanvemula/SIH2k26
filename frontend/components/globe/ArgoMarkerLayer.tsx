@@ -165,10 +165,11 @@ export default function ArgoMarkerLayer({ viewer }: ArgoMarkerLayerProps) {
     });
 
     return () => {
-      entityMapRef.current.forEach((entity) => {
+      const map = entityMapRef.current;
+      map.forEach((entity) => {
         try { v.entities.remove(entity); } catch {}
       });
-      entityMapRef.current.clear();
+      map.clear();
     };
   }, [viewer, observations, selectedId]);
 

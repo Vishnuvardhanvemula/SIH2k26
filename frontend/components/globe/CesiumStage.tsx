@@ -11,7 +11,7 @@ interface CesiumStageProps {
  * CesiumStage — the full-bleed 3D ocean globe.
  * Initializes Cesium client-only, frames the Indian Ocean.
  */
-export default function CesiumStage({ onViewerReady }: CesiumStageProps) {
+export default function CesiumStage({ onViewerReady }: CesiumStageProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<unknown>(null);
   const setCursor = useConsoleStore((s) => s.setCursor);
@@ -24,6 +24,7 @@ export default function CesiumStage({ onViewerReady }: CesiumStageProps) {
       const Cesium = await import('cesium');
       // Import Cesium CSS
       try {
+        // @ts-expect-error - CSS module typing not available for cesium widgets.css
         await import('cesium/Build/Cesium/Widgets/widgets.css');
       } catch {
         // CSS import may fail in some configs — not critical
@@ -62,7 +63,7 @@ export default function CesiumStage({ onViewerReady }: CesiumStageProps) {
       // ─── Scene styling ────────────────────────────────────────────────────────
       try { scene.backgroundColor = Cesium.Color.fromCssColorString('#050B14'); } catch {}
       try { scene.fog.enabled = true; scene.fog.density = 0.0001; } catch {}
-      try { scene.skyBox.show = false; } catch {}
+      try { if (scene.skyBox) scene.skyBox.show = false; } catch {}
 
       // ─── Lock Camera Zoom/Tilt ────────────────────────────────────────────────
       // Prevents user scrolling from breaking the HUD framing

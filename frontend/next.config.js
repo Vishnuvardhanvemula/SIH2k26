@@ -19,10 +19,10 @@ const nextConfig = {
         config.plugins.push(
           new CopyWebpackPlugin({
             patterns: [
-              { from: `${cesiumSource}/Workers`, to: '../public/cesium/Workers' },
-              { from: `${cesiumSource}/ThirdParty`, to: '../public/cesium/ThirdParty' },
-              { from: `${cesiumSource}/Assets`, to: '../public/cesium/Assets' },
-              { from: `${cesiumSource}/Widgets`, to: '../public/cesium/Widgets' },
+              { from: `${cesiumSource}/Workers`, to: '../public/cesium/Workers', info: { minimized: true } },
+              { from: `${cesiumSource}/ThirdParty`, to: '../public/cesium/ThirdParty', info: { minimized: true } },
+              { from: `${cesiumSource}/Assets`, to: '../public/cesium/Assets', info: { minimized: true } },
+              { from: `${cesiumSource}/Widgets`, to: '../public/cesium/Widgets', info: { minimized: true } },
             ],
           })
         );

@@ -1,7 +1,6 @@
 'use client';
 
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
-import { MonoValue } from '@/components/shared/MonoValue';
 import type { Mode } from '@/lib/api/types';
 
 const MODES: { id: Mode; label: string; depth: string; desc: string }[] = [

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import React, { ComponentType, useCallback, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import { TopBar } from './TopBar';
@@ -8,10 +8,10 @@ import { CameraChoreographer } from '@/components/globe/CameraChoreographer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Globe and layers — client-only, dynamic imports
-const CesiumStage = dynamic(() => import('@/components/globe/CesiumStage'), { ssr: false });
-const ModelFieldLayer = dynamic(() => import('@/components/globe/ModelFieldLayer'), { ssr: false });
-const ArgoMarkerLayer = dynamic(() => import('@/components/globe/ArgoMarkerLayer'), { ssr: false });
-const DepthSliceShader = dynamic(() => import('@/components/globe/DepthSliceShader'), { ssr: false });
+const CesiumStage = dynamic(() => import('@/components/globe/CesiumStage'), { ssr: false }) as ComponentType<{ onViewerReady?: (v: unknown) => void }>;
+const ModelFieldLayer = dynamic(() => import('@/components/globe/ModelFieldLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
+const ArgoMarkerLayer = dynamic(() => import('@/components/globe/ArgoMarkerLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
+const DepthSliceShader = dynamic(() => import('@/components/globe/DepthSliceShader'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
 
 // Panel components
 const LayersPanel = dynamic(() => import('@/components/layers-panel/LayersPanel').then(m => ({ default: m.LayersPanel })), { ssr: false });
@@ -74,7 +74,7 @@ export default function OceanConsole() {
         <CesiumStage onViewerReady={handleViewerReady} />
 
         {/* Globe rendering layers (render into Cesium scene) */}
-        {viewer && (
+        {!!viewer && (
           <>
             <ModelFieldLayer viewer={viewer} />
             <ArgoMarkerLayer viewer={viewer} />

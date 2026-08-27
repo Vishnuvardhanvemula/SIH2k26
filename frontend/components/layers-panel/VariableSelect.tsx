@@ -1,7 +1,6 @@
 'use client';
 
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
-import { GlassPanel } from '@/components/shared/GlassPanel';
 import { Eye, EyeOff, Thermometer, Droplets, Wind } from 'lucide-react';
 import type { Variable } from '@/lib/api/types';
 

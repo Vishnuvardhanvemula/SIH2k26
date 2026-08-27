@@ -1,7 +1,7 @@
 'use client';
 
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
-import { Play, Pause, FastForward } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 
 const SPEEDS = [0.5, 1, 2];
 

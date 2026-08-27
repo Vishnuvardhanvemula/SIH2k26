@@ -91,8 +91,10 @@ export function TopBar({ onSearchLocation, onReset }: TopBarProps) {
               transition-all duration-200
             "
             aria-label="Search ocean region"
+            role="combobox"
             aria-autocomplete="list"
             aria-expanded={showSuggestions && filteredLocations.length > 0}
+            aria-controls="search-suggestions"
           />
         </div>
 

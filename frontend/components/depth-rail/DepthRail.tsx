@@ -4,7 +4,6 @@ import { useCallback } from 'react';
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import * as Slider from '@radix-ui/react-slider';
 import { GlassPanel } from '@/components/shared/GlassPanel';
-import { DepthModeToggle } from './DepthModeToggle';
 import { DepthReadout } from './DepthReadout';
 import type { Mode } from '@/lib/api/types';
 
@@ -67,10 +66,10 @@ export function DepthRail({ onModeChange }: DepthRailProps) {
       {/* Mode toggle (Surface / Cutaway / Dive) removed for a cleaner HUD */}
 
       {/* Depth gradient + slider */}
-      <div className="flex-1 relative flex flex-col items-center justify-center w-full min-h-[120px] my-2">
+      <div className="flex-1 relative w-full min-h-[120px] my-2">
         
         {/* Mode Zone Brackets */}
-        <div className="absolute inset-y-0 right-1 w-2 flex flex-col pointer-events-none">
+        <div className="absolute inset-y-2 right-1 w-2 flex flex-col pointer-events-none">
           {/* Surface Zone (0-50) */}
           <div className={`h-[5%] border-r-2 border-y-2 rounded-r-[2px] transition-colors duration-300 ${depthPercent === 0 ? 'border-biolume shadow-[2px_0_8px_rgba(76,224,210,0.4)]' : 'border-thermocline/30'}`} />
           {/* Cutaway Zone (50-500) */}
@@ -81,21 +80,21 @@ export function DepthRail({ onModeChange }: DepthRailProps) {
 
         {/* Depth gradient line */}
         <div
-          className="absolute left-1/2 -translate-x-1/2 w-[2px] rounded-full depth-gradient opacity-60"
-          style={{ top: '8px', bottom: '8px' }}
+          className="absolute left-1/2 -translate-x-1/2 w-[2px] rounded-full depth-gradient opacity-60 inset-y-2 pointer-events-none"
           aria-hidden="true"
         />
 
-        {/* Depth marks - Minimized for cleanliness */}
-        <div
-          className="absolute left-3 flex flex-col justify-between text-left pointer-events-none"
-          style={{ top: '8px', bottom: '8px' }}
-          aria-hidden="true"
-        >
+        {/* Depth marks - correctly positioned by percentages */}
+        <div className="absolute left-3 right-0 inset-y-2 pointer-events-none">
           {DEPTH_MARKS.map((mark) => {
+            const percent = (mark / MAX_DEPTH) * 100;
             const isMajor = mark === 0 || mark === 500 || mark === 2000;
             return (
-              <div key={mark} className="flex items-center justify-start gap-1">
+              <div 
+                key={mark} 
+                className="absolute left-0 flex items-center justify-start gap-1 w-full -translate-y-1/2"
+                style={{ top: `${percent}%` }}
+              >
                 <div className={`${isMajor ? 'w-2 bg-thermocline/80' : 'w-1 bg-thermocline/30'} h-px`} />
                 {isMajor && (
                   <span className="font-mono text-[0.5rem] text-foam-dim/60 leading-none">
@@ -109,7 +108,7 @@ export function DepthRail({ onModeChange }: DepthRailProps) {
 
         {/* Vertical range slider using Radix */}
         <Slider.Root
-          className="relative flex justify-center h-full w-full touch-none select-none group z-10"
+          className="absolute inset-y-2 left-0 right-0 flex justify-center touch-none select-none group z-10"
           orientation="vertical"
           dir="ltr"
           value={[depth]}
