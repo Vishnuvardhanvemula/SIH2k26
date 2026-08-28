@@ -44,7 +44,7 @@ export function ModelVsObservationTable({ matchup }: ModelVsObservationTableProp
     <div role="region" aria-label="Model vs observation comparison table">
       <p className="label-ui mb-2">MODEL — OBSERVATION MATCHUP</p>
 
-      <div className="overflow-hidden rounded border border-thermocline/25">
+      <div className="overflow-hidden rounded border border-thermocline/25 bg-deep-panel/40 shadow-inner">
         {/* Table header */}
         <div className="grid grid-cols-4 gap-0 bg-thermocline/10 border-b border-thermocline/25">
           {['DEPTH', 'OBS', 'MODEL', 'Δ'].map((h) => (

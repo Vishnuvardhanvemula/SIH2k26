@@ -4,21 +4,51 @@ import React, { ComponentType, useCallback, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import { TopBar } from './TopBar';
-import { DepthColumnHUD } from './DepthColumnHUD';
 import { CameraChoreographer } from '@/components/globe/CameraChoreographer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Globe and layers — client-only, dynamic imports
-const CesiumStage = dynamic(() => import('@/components/globe/CesiumStage'), { ssr: false }) as ComponentType<{ onViewerReady?: (v: unknown) => void; onGlobeClick?: (lat: number, lon: number) => void }>;
-const ModelFieldLayer = dynamic(() => import('@/components/globe/ModelFieldLayer'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
-const ArgoMarkerLayer = dynamic(() => import('@/components/globe/ArgoMarkerLayer'), { ssr: false }) as ComponentType<{ viewer: unknown; onMarkerClick?: (id: string, lat: number, lon: number) => void }>;
-const DepthSliceShader = dynamic(() => import('@/components/globe/DepthSliceShader'), { ssr: false }) as ComponentType<{ viewer: unknown }>;
-const ThreeDVolumeLayer = dynamic(() => import('@/components/globe/ThreeDVolumeLayer').then(m => m.ThreeDVolumeLayer), { ssr: false }) as ComponentType<{ viewer: unknown | null }>;
+const CesiumStage = dynamic(
+  () => import('@/components/globe/CesiumStage'),
+  { ssr: false },
+) as ComponentType<{ onViewerReady?: (v: unknown) => void; onGlobeClick?: (lat: number, lon: number) => void }>;
+
+const ModelFieldLayer = dynamic(
+  () => import('@/components/globe/ModelFieldLayer'),
+  { ssr: false },
+) as ComponentType<{ viewer: unknown }>;
+
+const ArgoMarkerLayer = dynamic(
+  () => import('@/components/globe/ArgoMarkerLayer'),
+  { ssr: false },
+) as ComponentType<{ viewer: unknown; onMarkerClick?: (id: string, lat: number, lon: number) => void }>;
+
+const DepthSliceShader = dynamic(
+  () => import('@/components/globe/DepthSliceShader'),
+  { ssr: false },
+) as ComponentType<{ viewer: unknown }>;
 
 // Panel components
-const LayersPanel = dynamic(() => import('@/components/layers-panel/LayersPanel').then(m => ({ default: m.LayersPanel })), { ssr: false });
-const InspectorDrawer = dynamic(() => import('@/components/inspector/InspectorDrawer').then(m => ({ default: m.InspectorDrawer })), { ssr: false });
-const TimelineScrubber = dynamic(() => import('@/components/timeline/TimelineScrubber').then(m => ({ default: m.TimelineScrubber })), { ssr: false });
+const LayersPanel = dynamic(
+  () => import('@/components/layers-panel/LayersPanel').then((m) => ({ default: m.LayersPanel })),
+  { ssr: false },
+);
+
+const TimelineScrubber = dynamic(
+  () => import('@/components/timeline/TimelineScrubber').then((m) => ({ default: m.TimelineScrubber })),
+  { ssr: false },
+);
+
+const InspectorDrawer = dynamic(
+  () => import('@/components/inspector/InspectorDrawer').then((m) => ({ default: m.InspectorDrawer })),
+  { ssr: false },
+);
+
+// Ocean cutaway panel — replaces ThreeDVolumeLayer + DepthColumnHUD
+const OceanCutawayPanel = dynamic(
+  () => import('@/components/cutaway/OceanCutawayPanel').then((m) => ({ default: m.OceanCutawayPanel })),
+  { ssr: false },
+) as ComponentType<Record<string, never>>;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,53 +60,64 @@ const queryClient = new QueryClient({
 });
 
 /**
- * OceanConsole — the root shell of the entire console.
+ * OceanConsole — root shell of the console.
  * Orchestrates all panels floating over the full-bleed Cesium globe.
  */
 export default function OceanConsole() {
   const [viewer, setViewer] = useState<unknown>(null);
   const choreographerRef = useRef<CameraChoreographer | null>(null);
-  const mode = useConsoleStore((s) => s.mode);
+  const mode         = useConsoleStore((s) => s.mode);
+  const setMode      = useConsoleStore((s) => s.setMode);
   const setFocusPoint = useConsoleStore((s) => s.setFocusPoint);
-  const selectFloat = useConsoleStore((s) => s.selectFloat);
+  const setInspectorOpen = useConsoleStore((s) => s.setInspectorOpen);
 
   const handleViewerReady = useCallback((v: unknown) => {
     setViewer(v);
     choreographerRef.current = new CameraChoreographer(v);
   }, []);
 
-  /** Globe bare-ocean click: fly there AND open the depth column */
-  const handleGlobeClick = useCallback((lat: number, lon: number) => {
-    setFocusPoint(lat, lon);
-    choreographerRef.current?.flyToFloat(lat, lon, 800_000); // zoom to 800 km
-  }, [setFocusPoint]);
+  /** Globe bare-ocean click: set focus point → cutaway panel opens */
+  const handleGlobeClick = useCallback(
+    (lat: number, lon: number) => {
+      setFocusPoint(lat, lon);
+      choreographerRef.current?.flyToFloat(lat, lon, 800_000);
+    },
+    [setFocusPoint],
+  );
 
   /** TopBar region search: fly only, no column */
-  const handleSearchLocation = useCallback((lat: number, lon: number, altitudeM?: number) => {
-    choreographerRef.current?.flyToFloat(lat, lon, altitudeM);
-  }, []);
+  const handleSearchLocation = useCallback(
+    (lat: number, lon: number, altitudeM?: number) => {
+      choreographerRef.current?.flyToFloat(lat, lon, altitudeM);
+    },
+    [],
+  );
 
   const handleReset = useCallback(() => {
     choreographerRef.current?.resetToIndianOcean();
   }, []);
 
-  /** Globe marker click: zoom to marker and open inspector */
-  const handleMarkerClick = useCallback((id: string, lat: number, lon: number) => {
-    choreographerRef.current?.flyToFloat(lat, lon, 800_000);
-    selectFloat(id);
-  }, [selectFloat]);
+  /**
+   * Argo / glider / buoy marker click:
+   * Fly there AND set the focus point so the cutaway panel opens at that location.
+   */
+  const handleMarkerClick = useCallback(
+    (_id: string, lat: number, lon: number) => {
+      choreographerRef.current?.flyToFloat(lat, lon, 800_000);
+      setFocusPoint(lat, lon);
+    },
+    [setFocusPoint],
+  );
 
-  const setMode = useConsoleStore((s) => s.setMode);
-
-  const handleDiveReplay = useCallback((lat: number, lon: number) => {
-    // Set 3D focus point for the borehole column
-    setFocusPoint(lat, lon);
-    setMode('dive');
-    // Close inspector drawer to reveal the 3D column and DepthColumnHUD
-    useConsoleStore.getState().setInspectorOpen(false);
-    // Trigger the cinematic dive animation
-    choreographerRef.current?.transitionTo('dive', { lon, lat });
-  }, [setFocusPoint, setMode]);
+  const handleDiveReplay = useCallback(
+    (lat: number, lon: number) => {
+      setFocusPoint(lat, lon);
+      setMode('dive');
+      setInspectorOpen(false);
+      choreographerRef.current?.transitionTo('dive', { lon, lat });
+    },
+    [setFocusPoint, setMode, setInspectorOpen],
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -92,13 +133,12 @@ export default function OceanConsole() {
           onGlobeClick={handleGlobeClick}
         />
 
-        {/* Globe rendering layers (render into Cesium scene) */}
+        {/* Globe rendering layers */}
         {!!viewer && (
           <>
             <ModelFieldLayer viewer={viewer} />
             <ArgoMarkerLayer viewer={viewer} onMarkerClick={handleMarkerClick} />
             <DepthSliceShader viewer={viewer} />
-            <ThreeDVolumeLayer viewer={viewer} />
           </>
         )}
 
@@ -116,34 +156,19 @@ export default function OceanConsole() {
           <LayersPanel />
         </aside>
 
-        {/* ── Depth Column HUD — right, appears when a point is focused ─────── */}
-        <aside
-          className="absolute right-3 top-16 z-50 flex flex-col pointer-events-none"
-          aria-label="Depth column HUD"
-        >
-          <DepthColumnHUD />
-        </aside>
-
-        {/* ── Inspector Drawer — right, slides in on float selection ────────── */}
-        <InspectorDrawer onDiveReplay={handleDiveReplay} />
-
         {/* ── Timeline — bottom ─────────────────────────────────────────────── */}
         <div className="absolute bottom-0 left-0 right-0 z-40 h-16">
           <TimelineScrubber />
         </div>
 
-        {/* ── Depth mode HUD badge ──────────────────────────────────────────── */}
+        {/* ── Mode HUD badge ─────────────────────────────────────────────────── */}
         <div
           className="absolute top-16 left-1/2 -translate-x-1/2 mt-2 z-30 pointer-events-none"
           aria-live="polite"
           aria-label={`Current mode: ${mode}`}
         >
           {mode !== 'surface' && (
-            <div className="
-              flex items-center gap-2 px-3 py-1 rounded-full
-              bg-deep-panel/80 backdrop-blur-sm border border-thermocline/30
-              animate-fade-in
-            ">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-deep-panel/80 backdrop-blur-sm border border-thermocline/30 animate-fade-in">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   mode === 'dive' ? 'bg-coral-delta animate-pulse' : 'bg-instrument-amber'
@@ -155,6 +180,12 @@ export default function OceanConsole() {
             </div>
           )}
         </div>
+
+        {/* ── Inspector Drawer — slides in alongside cutaway ── */}
+        <InspectorDrawer onDiveReplay={handleDiveReplay} />
+
+        {/* ── Ocean Cutaway Panel — right side, always mounted for smooth animation ── */}
+        <OceanCutawayPanel />
       </div>
     </QueryClientProvider>
   );

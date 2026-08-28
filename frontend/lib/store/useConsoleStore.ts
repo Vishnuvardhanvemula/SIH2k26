@@ -118,8 +118,8 @@ export const useConsoleStore = create<ConsoleState>()((set) => ({
     set({
       selectedFloatId: id,
       inspectorOpen: id !== null,
-      focusLat: null, // mutually exclusive with depth column HUD
-      focusLon: null,
+      // NOTE: focusLat/focusLon intentionally NOT cleared here —
+      // marker clicks now set the focus point for the cutaway panel
     }),
 
   setColormap: (partial) =>
@@ -134,12 +134,13 @@ export const useConsoleStore = create<ConsoleState>()((set) => ({
 
   setCursor: (lat, lon) => set({ cursorLat: lat, cursorLon: lon }),
 
-  setFocusPoint: (lat, lon) => set({ 
-    focusLat: lat, 
-    focusLon: lon,
-    selectedFloatId: null, // mutually exclusive with float inspector
-    inspectorOpen: true,   // open inspector for ocean-point data too
-  }),
+  setFocusPoint: (lat, lon) =>
+    set({
+      focusLat: lat,
+      focusLon: lon,
+      selectedFloatId: null,
+      // Do NOT force inspectorOpen here — OceanCutawayPanel shows itself
+    }),
 
   clearFocusPoint: () => set({ focusLat: null, focusLon: null }),
 

@@ -5,10 +5,9 @@ import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import { GlassPanel } from '@/components/shared/GlassPanel';
 import { LoadingScan } from '@/components/shared/LoadingScan';
 import { FloatSummaryCard } from './FloatSummaryCard';
-import { DepthProfileChart } from './DepthProfileChart';
 import { ModelVsObservationTable } from './ModelVsObservationTable';
 import { DiveReplayButton } from './DiveReplayButton';
-import { useProfile, useMatchup, useObservations } from '@/lib/api/queries';
+import { useMatchup, useObservations } from '@/lib/api/queries';
 import type { Observation } from '@/lib/api/types';
 
 interface InspectorDrawerProps {
@@ -31,7 +30,6 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
 
   const effectiveId = selectedId || (isOceanPoint ? `GEO_${focusLat!.toFixed(2)}_${focusLon!.toFixed(2)}` : null);
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useProfile(effectiveId);
   const { data: matchup, isLoading: matchupLoading } = useMatchup(effectiveId);
 
   // Get observation metadata for the selected float or construct synthetic ocean point observation
@@ -62,7 +60,7 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
 
   return (
     <div
-      className="absolute right-3 top-16 bottom-20 z-50 w-72 animate-slide-in-right"
+      className="absolute right-[500px] top-16 bottom-20 z-50 w-72 animate-slide-in-right"
       role="dialog"
       aria-modal="false"
       aria-label={selectedObservation ? `Inspector for ${selectedObservation.id}` : 'Ocean inspector'}
@@ -102,24 +100,7 @@ export function InspectorDrawer({ onDiveReplay }: InspectorDrawerProps) {
               </div>
             )}
 
-            <div className="w-full h-px bg-thermocline/20 shrink-0" role="separator" />
 
-            {/* Depth profile chart */}
-            {profileLoading ? (
-              <LoadingScan label="Loading profile…" compact />
-            ) : profileError ? (
-              <div className="font-mono text-xs text-coral-delta/80">
-                PROFILE STREAM ERROR
-              </div>
-            ) : profile ? (
-              <DepthProfileChart profile={profile} />
-            ) : (
-              <div className="font-mono text-2xs text-foam-dim">
-                NO PROFILE DATA AT THIS DEPTH
-              </div>
-            )}
-
-            <div className="w-full h-px bg-thermocline/20 shrink-0" role="separator" />
 
             {/* Model vs observation table */}
             {matchupLoading ? (
