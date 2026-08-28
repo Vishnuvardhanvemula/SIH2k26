@@ -10,12 +10,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="w-full">
+    <html lang="en" className="w-full h-full">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className="w-full min-h-screen bg-abyss text-foam font-ui">
+      <body className="w-full h-full bg-abyss text-foam font-ui">
         {children}
       </body>
     </html>
