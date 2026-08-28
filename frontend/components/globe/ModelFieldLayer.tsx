@@ -35,6 +35,7 @@ export default function ModelFieldLayer({ viewer }: ModelFieldLayerProps) {
         remove: (e: unknown) => void;
       };
       scene: { requestRender: () => void };
+      isDestroyed?: () => boolean;
     };
 
     // Always clear existing entities on update
@@ -125,7 +126,9 @@ export default function ModelFieldLayer({ viewer }: ModelFieldLayerProps) {
     }
 
     return () => {
-      entityIdsRef.current.forEach((e) => v.entities.remove(e));
+      if (v && (!v.isDestroyed || !v.isDestroyed())) {
+        entityIdsRef.current.forEach((e) => v.entities.remove(e));
+      }
       entityIdsRef.current = [];
     };
   }, [viewer, field, colormap, isModelFieldVisible, showCurrents, depth]);

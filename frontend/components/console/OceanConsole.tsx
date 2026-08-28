@@ -122,10 +122,10 @@ export default function OceanConsole() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Full-viewport console shell */}
-      <div
-        className="relative w-full h-screen overflow-hidden bg-abyss"
-        id="ocean-console"
-        aria-label="INCOIS Ocean Digital Twin Console"
+      <div 
+        className="w-full h-full relative" 
+        role="application" 
+        aria-label="INCOIS OceanRoot Console"
       >
         {/* ── Globe Stage — z-index base, fills entire viewport ──────────── */}
         <CesiumStage

@@ -185,8 +185,8 @@ export default function CesiumStage({ onViewerReady, onGlobeClick }: CesiumStage
       ref={containerRef}
       id="cesium-stage"
       className="absolute inset-0 w-full h-full"
-      aria-label="3D Ocean Globe — Indian Ocean Digital Twin"
-      role="img"
+      aria-label="3D Ocean Globe — INCOIS OceanRoot"
+      role="application"
     />
   );
 }

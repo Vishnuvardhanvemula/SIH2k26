@@ -9,8 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Ocean Digital Twin design tokens
-        abyss: '#050B14',
+        // OceanRoot design tokens
+        abyss: '#020b14',
         'deep-panel': '#0B1D2E',
         thermocline: '#1C5C6B',
         biolume: '#4CE0D2',
@@ -20,7 +20,7 @@ const config: Config = {
         'foam-dim': '#8FA5AC',
       },
       fontFamily: {
-        display: ['Space Grotesk', 'sans-serif'],
+        display: ['Manrope', 'sans-serif'],
         ui: ['Inter', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
       },

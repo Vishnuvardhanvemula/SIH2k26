@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Search, RefreshCw, Waves, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import { Search, RefreshCw, Waves, MapPin, ArrowLeft } from 'lucide-react';
 import { useConsoleStore } from '@/lib/store/useConsoleStore';
 import { LiveReadout } from './LiveReadout';
 
@@ -52,15 +53,28 @@ export function TopBar({ onSearchLocation, onReset }: TopBarProps) {
                  bg-abyss/85 backdrop-blur-md border-b border-thermocline/25"
       role="banner"
     >
-      {/* Wordmark */}
-      <div className="flex items-center gap-2 shrink-0" aria-label="Ocean Digital Twin">
-        <Waves size={18} className="text-biolume" aria-hidden="true" />
-        <span className="font-display font-semibold text-sm text-foam tracking-wide">
-          OCEAN DIGITAL TWIN
-        </span>
-        <span className="hidden lg:block text-2xs text-foam-dim tracking-widest uppercase font-mono ml-1">
-          INCOIS
-        </span>
+      {/* Home Button & Wordmark */}
+      <div className="flex items-center gap-4 shrink-0" aria-label="OceanRoot">
+        <Link 
+          href="/"
+          className="flex items-center gap-1.5 text-foam-dim hover:text-white transition-colors"
+          title="Back to Home"
+        >
+          <ArrowLeft size={14} />
+          <span className="font-mono text-xs uppercase tracking-widest hidden sm:inline-block">Home</span>
+        </Link>
+        
+        <div className="w-px h-5 bg-thermocline/25" />
+
+        <div className="flex items-center gap-2">
+          <Waves size={18} className="text-biolume" aria-hidden="true" />
+          <span className="font-display font-semibold text-sm text-foam tracking-wide">
+            OCEANROOT
+          </span>
+          <span className="hidden lg:block text-2xs text-foam-dim tracking-widest uppercase font-mono ml-1">
+            INCOIS
+          </span>
+        </div>
       </div>
 
       {/* Live readout — center */}
